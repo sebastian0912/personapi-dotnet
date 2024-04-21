@@ -1,0 +1,29 @@
+﻿@model personapi_dotnet.Models.Entities.Telefono
+
+<h1>Agregar Teléfono</h1>
+
+<form asp-action="Create">
+    <div class="form-group">
+        <label asp-for="Num" class="control-label">Número</label>
+        <input asp-for="Num" class="form-control" />
+        <span asp-validation-for="Num" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Oper" class="control-label">Operador</label>
+        <input asp-for="Oper" class="form-control" />
+        <span asp-validation-for="Oper" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Duenio" class="control-label">Dueño (CC)</label>
+        <input asp-for="Duenio" class="form-control" />
+        <span asp-validation-for="Duenio" class="text-danger"></span>
+    </div>
+
+    <input type="submit" value="Crear" class="btn btn-primary" />
+</form>
+
+<div>
+    <a asp-action="Index">Volver a la lista</a>
+</div>

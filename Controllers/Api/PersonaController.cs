@@ -3,7 +3,7 @@ using personapi_dotnet.Models.Entities;
 using personapi_dotnet.Models.Interfaces;
 using System.Threading.Tasks;
 
-namespace personapi_dotnet.Controllers
+namespace personapi_dotnet.Controllers.Api
 {
     [Route("api/[controller]")]
     [ApiController]

@@ -1,0 +1,31 @@
+﻿@model IEnumerable<personapi_dotnet.Models.Entities.Persona>
+
+<h1>Personas</h1>
+
+<table>
+    <thead>
+        <tr>
+            <th>CC</th>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var persona in Model)
+        {
+            <tr>
+                <td>@persona.Cc</td>
+                <td>@persona.Nombre</td>
+                <td>@persona.Apellido</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@persona.Cc">Editar</a> |
+                    <a asp-action="Details" asp-route-id="@persona.Cc">Detalles</a> |
+                    <a asp-action="Delete" asp-route-id="@persona.Cc">Eliminar</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a asp-action="Create">Crear Nueva Persona</a>
