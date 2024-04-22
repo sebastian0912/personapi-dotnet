@@ -37,6 +37,7 @@ public class EstudiosController : ControllerBase
         return CreatedAtAction(nameof(Get), new { idProf = estudio.IdProf, ccPer = estudio.CcPer }, estudio);
     }
 
+
     [HttpPut("{idProf}/{ccPer}")]
     public async Task<IActionResult> Put(int idProf, int ccPer, [FromBody] Estudio estudio)
     {
@@ -49,7 +50,7 @@ public class EstudiosController : ControllerBase
     }
 
     [HttpDelete("{idProf}/{ccPer}")]
-    public async Task<IActionResult> Delete(int idProf, int ccPer)
+    public async Task<IActionResult> DeleteEstudios(int idProf, int ccPer)
     {
         await _repository.DeleteAsync(idProf, ccPer);
         return NoContent();

@@ -142,3 +142,4 @@ C:\Users\Casa\source\repos\personapi-dotnet\personapi-dotnet\bin\Debug\net8.0\Sw
 C:\Users\Casa\source\repos\personapi-dotnet\personapi-dotnet\obj\Debug\net8.0\personapi-dotnet.MvcApplicationPartsAssemblyInfo.cs
 C:\Users\Casa\source\repos\personapi-dotnet\personapi-dotnet\obj\Debug\net8.0\personapi-dotnet.xml
 C:\Users\Casa\source\repos\personapi-dotnet\personapi-dotnet\obj\Debug\net8.0\personapi-dotnet.sourcelink.json
+C:\Users\Casa\source\repos\personapi-dotnet\personapi-dotnet\bin\Debug\net8.0\Microsoft.VisualStudio.Web.BrowserLink.dll

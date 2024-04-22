@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using personapi_dotnet.Models.Entities;
-using personapi_dotnet.Models.Interfaces;
 using Microsoft.OpenApi.Models;
 using personapi_dotnet.Repositories;
+using personapi_dotnet.Models.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,5 +64,8 @@ app.UseEndpoints(endpoints =>
         pattern: "{controller=Home}/{action=Index}/{id?}");
     endpoints.MapRazorPages(); // Solo si todavía quieres usar Razor Pages para algo más
 });
+
+app.UseBrowserLink();
+
 
 app.Run();

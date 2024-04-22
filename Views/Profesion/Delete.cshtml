@@ -1,0 +1,11 @@
+﻿@model personapi_dotnet.Models.Entities.Profesion
+
+<h1>Eliminar Profesión</h1>
+
+<h3>¿Está seguro de que desea eliminar esta profesión?</h3>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="Id" />
+    <input type="submit" value="Eliminar" class="btn btn-danger" />
+    <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+</form>

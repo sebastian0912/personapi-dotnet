@@ -1,0 +1,33 @@
+﻿@model personapi_dotnet.Models.Entities.Estudio
+
+<h1>Detalles del Estudio</h1>
+
+<dl class="row">
+    <dt class="col-sm-2">
+        @Html.DisplayNameFor(model => model.IdProf)
+    </dt>
+    <dd class="col-sm-10">
+        @Html.DisplayFor(model => model.IdProfNavigation.Nom)
+    </dd>
+    <dt class="col-sm-2">
+        @Html.DisplayNameFor(model => model.CcPer)
+    </dt>
+    <dd class="col-sm-10">
+        @Html.DisplayFor(model => model.CcPerNavigation.Nombre)
+    </dd>
+    <dt class="col-sm-2">
+        @Html.DisplayNameFor(model => model.Fecha)
+    </dt>
+    <dd class="col-sm-10">
+        @Html.DisplayFor(model => model.Fecha)
+    </dd>
+    <dt class="col-sm-2">
+        @Html.DisplayNameFor(model => model.Univer)
+    </dt>
+    <dd class="col-sm-10">
+        @Html.DisplayFor(model => model.Univer)
+    </dd>
+</dl>
+
+<a asp-action="Edit" asp-route-idProf="@Model.IdProf" asp-route-ccPer="@Model.CcPer">Edit</a> |
+<a asp-action="Index">Back to List</a>

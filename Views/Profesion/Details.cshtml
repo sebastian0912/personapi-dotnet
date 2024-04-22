@@ -1,0 +1,27 @@
+﻿@model personapi_dotnet.Models.Entities.Profesion
+
+<h1>Detalles de la Profesión</h1>
+
+<dl class="row">
+    <dt class="col-sm-2">
+        ID
+    </dt>
+    <dd class="col-sm-10">
+        @Model.Id
+    </dd>
+    <dt class="col-sm-2">
+        Nombre
+    </dt>
+    <dd class="col-sm-10">
+        @Model.Nom
+    </dd>
+    <dt class="col-sm-2">
+        Descripción
+    </dt>
+    <dd class="col-sm-10">
+        @Model.Des
+    </dd>
+</dl>
+
+<a asp-action="Edit" asp-route-id="@Model.Id">Editar</a> |
+<a asp-action="Index">Volver a la lista</a>

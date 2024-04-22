@@ -1,5 +1,4 @@
-﻿<!-- Delete.cshtml para Telefono -->
-@model personapi_dotnet.Models.Entities.Telefono
+﻿@model personapi_dotnet.Models.Entities.Telefono
 
 <h1>Eliminar Teléfono</h1>
 <h3>¿Está seguro de que desea eliminar el siguiente teléfono?</h3>
@@ -14,12 +13,12 @@
         <dd class="col-sm-10">
             @Html.DisplayFor(model => model.Num)
         </dd>
-        <!-- Agrega más detalles si es necesario -->
     </dl>
 
-    <form asp-action="DeleteConfirmed" method="post">
+    <form asp-action="Delete" method="post">
         <input type="hidden" asp-for="Num" />
         <input type="submit" value="Eliminar" class="btn btn-danger" />
         <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
     </form>
+
 </div>

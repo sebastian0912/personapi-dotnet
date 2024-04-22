@@ -81,7 +81,7 @@ namespace personapi_dotnet.Controllers.View
         }
 
         // GET: Telefonos/Delete/5
-        public async Task<IActionResult> DeleteConfirmed(string num)
+        public async Task<IActionResult> Delete(string num)
         {
             var telefono = await _telefonoRepository.GetByIdAsync(num);
             if (telefono == null)
@@ -94,7 +94,7 @@ namespace personapi_dotnet.Controllers.View
         // POST: Telefonos/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> TelefonoExists(string num)
+        public async Task<IActionResult> DeleteConfirmed(string num)
         {
             await _telefonoRepository.DeleteAsync(num);
             return RedirectToAction(nameof(Index));

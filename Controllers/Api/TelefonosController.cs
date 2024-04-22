@@ -49,7 +49,7 @@ public class TelefonosController : ControllerBase
     }
 
     [HttpDelete("{num}")]
-    public async Task<IActionResult> Delete(string num)
+    public async Task<IActionResult> DeleteTelefonos(string num)
     {
         await _repository.DeleteAsync(num);
         return NoContent();

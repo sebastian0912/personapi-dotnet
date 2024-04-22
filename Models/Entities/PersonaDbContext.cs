@@ -24,6 +24,7 @@ public partial class PersonaDbContext : DbContext
     public virtual DbSet<Telefono> Telefonos { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseSqlServer("Server=localhost\\SQLEXPRESS;Database=persona_db;Trusted_Connection=True;TrustServerCertificate=true");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -55,7 +56,7 @@ public partial class PersonaDbContext : DbContext
 
         modelBuilder.Entity<Persona>(entity =>
         {
-            entity.HasKey(e => e.Cc).HasName("PK__persona__3213666D3372F841");
+            entity.HasKey(e => e.Cc).HasName("PK__persona__3213666D1FD1DC51");
 
             entity.ToTable("persona");
 
@@ -80,13 +81,11 @@ public partial class PersonaDbContext : DbContext
 
         modelBuilder.Entity<Profesion>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__profesio__3213E83FEB334872");
+            entity.HasKey(e => e.Id).HasName("PK__profesio__3213E83FBA64F131");
 
             entity.ToTable("profesion");
 
-            entity.Property(e => e.Id)
-                .ValueGeneratedNever()
-                .HasColumnName("id");
+            entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Des)
                 .HasColumnType("text")
                 .HasColumnName("des");
@@ -98,7 +97,7 @@ public partial class PersonaDbContext : DbContext
 
         modelBuilder.Entity<Telefono>(entity =>
         {
-            entity.HasKey(e => e.Num).HasName("PK__telefono__DF908D652780E6E9");
+            entity.HasKey(e => e.Num).HasName("PK__telefono__DF908D65E3E16844");
 
             entity.ToTable("telefono");
 
