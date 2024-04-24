@@ -1,179 +1,204 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using personapi_dotnet.Models.Entities;
-using personapi_dotnet.Models.Interfaces;
+﻿using System.Net.Http;
+using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using System.Text.Json;
+using personapi_dotnet.Models.Entities;
+using System.Text;
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
 
 namespace personapi_dotnet.Controllers.View
 {
     public class EstudiosController : Controller
     {
-        private readonly IEstudioRepository _estudioRepository;
-        private readonly PersonaDbContext _context;
+        private readonly HttpClient _httpClient;
+        private readonly JsonSerializerOptions _options;
 
-        public EstudiosController(IEstudioRepository estudioRepository, PersonaDbContext context)
+        public EstudiosController(IHttpClientFactory httpClientFactory)
         {
-            _estudioRepository = estudioRepository;
-            _context = context;
+            _httpClient = httpClientFactory.CreateClient("API");
+            _options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                ReadCommentHandling = JsonCommentHandling.Skip,
+                AllowTrailingCommas = true
+            };
         }
 
+        // GET: Estudios
         public async Task<IActionResult> Index()
         {
-            var estudios = await _estudioRepository.GetAllAsync();
-            return View(estudios);
+            var response = await _httpClient.GetAsync("Estudios");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var estudios = JsonSerializer.Deserialize<List<Estudio>>(content, _options);
+                return View(estudios ?? new List<Estudio>());
+            }
+            return NotFound();
         }
 
-        public IActionResult Create()
+        // GET: Estudios/Create
+        public async Task<IActionResult> Create()
         {
+            ViewData["CcPer"] = new SelectList(await FetchPersonas(), "Cc", "Cc");
+            ViewData["IdProf"] = new SelectList(await FetchProfesiones(), "Id", "Id");
             return View();
         }
 
+        // POST: Estudios/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Estudio estudio)
         {
-            // Elimina los errores relacionados con las propiedades de navegación
-            ModelState.Remove("CcPerNavigation");
-            ModelState.Remove("IdProfNavigation");
-
-            // Verifica que el estado del modelo sea válido
             if (ModelState.IsValid)
             {
-                // Comprueba si la Persona existe
-                bool personaExists = await _context.Personas.AnyAsync(p => p.Cc == estudio.CcPer);
-                if (!personaExists)
-                {
-                    // Si no existe, agrega un error al ModelState y devuelve a la vista
-                    ModelState.AddModelError("CcPer", "La persona especificada no existe.");
-                    return View(estudio);
-                }
+                var json = JsonSerializer.Serialize(estudio);
+                var data = new StringContent(json, Encoding.UTF8, "application/json");
 
-                // Comprueba si la Profesion existe
-                bool profesionExists = await _context.Profesions.AnyAsync(p => p.Id == estudio.IdProf);
-                if (!profesionExists)
+                var response = await _httpClient.PostAsync("api/Estudios", data);
+                if (response.IsSuccessStatusCode)
                 {
-                    // Si no existe, agrega un error al ModelState y devuelve a la vista
-                    ModelState.AddModelError("IdProf", "La profesión especificada no existe.");
-                    return View(estudio);
-                }
-
-                try
-                {
-                    // Intenta crear el estudio
-                    await _estudioRepository.CreateAsync(estudio);
-                    // Si todo va bien, redirige al índice
                     return RedirectToAction(nameof(Index));
                 }
-                catch (Exception ex)
+                else
                 {
-                    // Si ocurre una excepción, agrega el error al ModelState y devuelve a la vista
-                    ModelState.AddModelError("", $"Ocurrió un error al guardar el estudio: {ex.Message}");
+                    var errorResponse = await response.Content.ReadAsStringAsync();
+                    ModelState.AddModelError(string.Empty, "Error al crear el estudio: " + errorResponse);
                 }
             }
 
-            // Si el ModelState no es válido, simplemente devuelve a la vista con los mensajes de error
+            // Recargar los SelectList si hay un fallo
+            ViewData["CcPer"] = new SelectList(await FetchPersonas(), "Id", "Nombre", estudio.CcPer);
+            ViewData["IdProf"] = new SelectList(await FetchProfesiones(), "Id", "Nom", estudio.IdProf);
+
             return View(estudio);
+        }
+
+        private async Task<IEnumerable<Persona>> FetchPersonas()
+        {
+            var response = await _httpClient.GetAsync("Persona");
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var persona = JsonSerializer.Deserialize<IEnumerable<Persona>>(jsonResponse) ?? new List<Persona>();
+                Console.WriteLine("------------Personas: " + JsonSerializer.Serialize(persona));
+                return persona;
+            }
+            else
+            {
+                // Log the error or throw an exception
+                Console.WriteLine($"Error fetching personas: {response.StatusCode}");
+                return new List<Persona>();
+            }
+        }
+
+        private async Task<IEnumerable<Profesion>> FetchProfesiones()
+        {
+            var response = await _httpClient.GetAsync("Profesions");
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var profesion = JsonSerializer.Deserialize<IEnumerable<Profesion>>(jsonResponse) ?? new List<Profesion>();
+                Console.WriteLine("------------Profesiones: " + JsonSerializer.Serialize(profesion));
+                return profesion;
+            }
+            else
+            {
+                // Log the error or throw an exception
+                Console.WriteLine($"Error fetching profesiones: {response.StatusCode}");
+                return new List<Profesion>();
+            }
         }
 
 
 
 
+
+
+
+
+
+        // GET: Estudios/Details/{idProf}/{ccPer}
         public async Task<IActionResult> Details(int idProf, int ccPer)
         {
-            var estudio = await _estudioRepository.GetByIdAsync(idProf, ccPer);
-
-            if (estudio == null)
+            var response = await _httpClient.GetAsync($"Estudios/{idProf}/{ccPer}");
+            if (response.IsSuccessStatusCode)
             {
-                return NotFound();
+                var content = await response.Content.ReadAsStringAsync();
+                var estudio = JsonSerializer.Deserialize<Estudio>(content, _options);
+                return View(estudio);
             }
-            return View(estudio);
+            return NotFound();
         }
 
-
-
+        // GET: Estudios/Edit/{idProf}/{ccPer}
         public async Task<IActionResult> Edit(int idProf, int ccPer)
         {
-            var estudio = await _estudioRepository.GetByIdAsync(idProf, ccPer);
-            if (estudio == null)
+            var response = await _httpClient.GetAsync($"Estudios/{idProf}/{ccPer}");
+            if (response.IsSuccessStatusCode)
             {
-                return NotFound();
+                var content = await response.Content.ReadAsStringAsync();
+                var estudio = JsonSerializer.Deserialize<Estudio>(content, _options);
+                return View(estudio);
             }
-            return View(estudio);
+            return NotFound();
         }
 
-
+        // POST: Estudios/Edit/{idProf}/{ccPer}
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int idProf, int ccPer, [Bind("IdProf, CcPer, Fecha, Univer")] Estudio estudio)
-
+        public async Task<IActionResult> Edit(int idProf, int ccPer, Estudio estudio)
         {
             if (idProf != estudio.IdProf || ccPer != estudio.CcPer)
             {
-                return NotFound();
+                return BadRequest();
             }
 
-            // Elimina los errores relacionados con las propiedades de navegación
-            ModelState.Remove("CcPerNavigation");
-            ModelState.Remove("IdProfNavigation");
-
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                bool personaExists = await _context.Personas.AnyAsync(p => p.Cc == estudio.CcPer);
-                bool profesionExists = await _context.Profesions.AnyAsync(p => p.Id == estudio.IdProf);
-
-                if (!personaExists || !profesionExists)
-                {
-                    if (!personaExists)
-                    {
-                        ModelState.AddModelError("CcPer", "La persona especificada no existe.");
-                    }
-                    if (!profesionExists)
-                    {
-                        ModelState.AddModelError("IdProf", "La profesión especificada no existe.");
-                    }
-                    return View(estudio);
-                }
-
-                try
-                {
-                    await _estudioRepository.UpdateAsync(estudio);
-                    return RedirectToAction(nameof(Index));
-                }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    ModelState.AddModelError("", $"Ocurrió un error de concurrencia al actualizar el estudio: {ex.Message}");
-                    return View(estudio);
-                }
-                catch (Exception ex)
-                {
-                    ModelState.AddModelError("", $"Ocurrió un error al actualizar el estudio: {ex.Message}");
-                    return View(estudio);
-                }
+                return View(estudio);
             }
 
+            var json = JsonSerializer.Serialize(estudio);
+            var data = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PutAsync($"Estudios/{idProf}/{ccPer}", data);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return RedirectToAction(nameof(Index));
+            }
+            ModelState.AddModelError(string.Empty, "An error occurred while updating the estudio.");
             return View(estudio);
         }
 
-
-
-
+        // GET: Estudios/Delete/{idProf}/{ccPer}
         public async Task<IActionResult> Delete(int idProf, int ccPer)
         {
-            var estudio = await _estudioRepository.GetByIdAsync(idProf, ccPer);
-            if (estudio == null)
+            var response = await _httpClient.GetAsync($"Estudios/{idProf}/{ccPer}");
+            if (response.IsSuccessStatusCode)
             {
-                return NotFound();
+                var content = await response.Content.ReadAsStringAsync();
+                var estudio = JsonSerializer.Deserialize<Estudio>(content, _options);
+                return View(estudio);
             }
-            return View(estudio);
+            return NotFound();
         }
 
+        // POST: Estudios/Delete/{idProf}/{ccPer}
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int idProf, int ccPer)
         {
-            await _estudioRepository.DeleteAsync(idProf, ccPer);
-            return RedirectToAction(nameof(Index));
+            var response = await _httpClient.DeleteAsync($"Estudios/{idProf}/{ccPer}");
+            if (response.IsSuccessStatusCode)
+            {
+                return RedirectToAction(nameof(Index));
+            }
+            ModelState.AddModelError(string.Empty, "An error occurred while deleting the estudio.");
+            return View();
         }
     }
 }

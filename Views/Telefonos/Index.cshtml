@@ -1,8 +1,15 @@
 ﻿@model IEnumerable<personapi_dotnet.Models.Entities.Telefono>
 
+@{
+    ViewData["Title"] = "Lista de Teléfonos";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
 <h1>Lista de Teléfonos</h1>
 
-<table>
+<a asp-action="Create">Agregar Nuevo Teléfono</a>
+
+<table class="table">
     <thead>
         <tr>
             <th>Número</th>
@@ -28,4 +35,3 @@
     </tbody>
 </table>
 
-<a asp-action="Create">Agregar Nuevo Teléfono</a>

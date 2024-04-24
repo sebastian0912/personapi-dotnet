@@ -1,21 +1,27 @@
 ﻿@model personapi_dotnet.Models.Entities.Estudio
 
-<h2>Create</h2>
+@{
+    ViewData["Title"] = "Create";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
 
+<h2>Create</h2>
 <h4>Estudio</h4>
 <hr />
 
 <div class="row">
     <div class="col-md-4">
         <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
             <div class="form-group">
                 <label asp-for="IdProf" class="control-label"></label>
-                <input asp-for="IdProf" class="form-control" />
+                <select asp-for="IdProf" class="form-control" asp-items="ViewBag.IdProf"></select>
                 <span asp-validation-for="IdProf" class="text-danger"></span>
             </div>
             <div class="form-group">
                 <label asp-for="CcPer" class="control-label"></label>
-                <input asp-for="CcPer" class="form-control" />
+                <select asp-for="CcPer" class="form-control" asp-items="ViewBag.CcPer"></select>
                 <span asp-validation-for="CcPer" class="text-danger"></span>
             </div>
             <div class="form-group">
@@ -34,7 +40,6 @@
             </div>
         </form>
         <div asp-validation-summary="All" class="text-danger"></div>
-
     </div>
 </div>
 

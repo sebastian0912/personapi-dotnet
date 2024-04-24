@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-using personapi_dotnet.Models.Interfaces;
+using personapi_dotnet.Controllers.Interfaces;
 
 namespace personapi_dotnet.Repositories
 {

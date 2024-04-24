@@ -1,24 +1,40 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using System.Net.Http;
+using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+using System.Text.Json;
 using personapi_dotnet.Models.Entities;
-using personapi_dotnet.Models.Interfaces;
+using System.Text; // Necesario para enviar datos en formato JSON
+using System.Collections.Generic; // Necesario para usar List
 
 namespace personapi_dotnet.Controllers.View
 {
     public class PersonasController : Controller
     {
-        private readonly IPersonaRepository _personaRepository;
+        private readonly HttpClient _httpClient;
+        private readonly JsonSerializerOptions _options;
 
-        public PersonasController(IPersonaRepository personaRepository)
+        public PersonasController(IHttpClientFactory httpClientFactory)
         {
-            _personaRepository = personaRepository;
+            _httpClient = httpClientFactory.CreateClient("API");
+            _options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                ReadCommentHandling = JsonCommentHandling.Skip,
+                AllowTrailingCommas = true
+            };
         }
 
         // GET: Personas
         public async Task<IActionResult> Index()
         {
-            var personas = await _personaRepository.GetAllAsync();
-            return View(personas);
+            var response = await _httpClient.GetAsync("Persona");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var personas = JsonSerializer.Deserialize<List<Persona>>(content, _options);
+                return View(personas ?? new List<Persona>());
+            }
+            return NotFound();
         }
 
         // GET: Personas/Create
@@ -32,23 +48,38 @@ namespace personapi_dotnet.Controllers.View
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Persona persona)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                await _personaRepository.CreateAsync(persona);
+                return View(persona);
+            }
+
+            var json = JsonSerializer.Serialize(persona);
+            var data = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync("Persona", data);
+
+            if (response.IsSuccessStatusCode)
+            {
                 return RedirectToAction(nameof(Index));
             }
-            return View(persona);
+            else
+            {
+                ModelState.AddModelError(string.Empty, "An error occurred while creating the persona.");
+                return View(persona);
+            }
         }
 
         // GET: Personas/Edit/5
         public async Task<IActionResult> Edit(int id)
         {
-            var persona = await _personaRepository.GetByIdAsync(id);
-            if (persona == null)
+            var response = await _httpClient.GetAsync($"Persona/{id}");
+            if (response.IsSuccessStatusCode)
             {
-                return NotFound();
+                var content = await response.Content.ReadAsStringAsync();
+                var persona = JsonSerializer.Deserialize<Persona>(content, _options);
+                return View(persona);
             }
-            return View(persona);
+            return NotFound();
         }
 
         // POST: Personas/Edit/5
@@ -60,49 +91,52 @@ namespace personapi_dotnet.Controllers.View
             {
                 return NotFound();
             }
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    await _personaRepository.UpdateAsync(persona);
-                    return RedirectToAction(nameof(Index));
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!await PersonaExists(id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-            }
-            return View(persona);
-        }
 
+            if (!ModelState.IsValid)
+            {
+                return View(persona);
+            }
+
+            var json = JsonSerializer.Serialize(persona);
+            var data = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PutAsync($"Persona/{id}", data);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return RedirectToAction(nameof(Index));
+            }
+            else
+            {
+                ModelState.AddModelError(string.Empty, "An error occurred while updating the persona.");
+                return View(persona);
+            }
+        }
 
         // GET: Personas/Details/5
         public async Task<IActionResult> Details(int id)
         {
-            var persona = await _personaRepository.GetByIdAsync(id);
-            if (persona == null)
+            var response = await _httpClient.GetAsync($"Persona/{id}");
+            if (response.IsSuccessStatusCode)
             {
-                return NotFound();
+                var content = await response.Content.ReadAsStringAsync();
+                var persona = JsonSerializer.Deserialize<Persona>(content, _options);
+                return View(persona);
             }
-            return View(persona);
+            return NotFound();
         }
 
         // GET: Personas/Delete/5
         public async Task<IActionResult> Delete(int id)
         {
-            var persona = await _personaRepository.GetByIdAsync(id);
-            if (persona == null)
+            var response = await _httpClient.GetAsync($"Persona/{id}");
+            if (response.IsSuccessStatusCode)
             {
-                return NotFound();
+                var content = await response.Content.ReadAsStringAsync();
+                var persona = JsonSerializer.Deserialize<Persona>(content, _options);
+                return View(persona);
             }
-            return View(persona);
+            return NotFound();
         }
 
         // POST: Personas/Delete/5
@@ -110,13 +144,16 @@ namespace personapi_dotnet.Controllers.View
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            await _personaRepository.DeleteAsync(id);
-            return RedirectToAction(nameof(Index));
-        }
-
-        private async Task<bool> PersonaExists(int id)
-        {
-            return await _personaRepository.GetByIdAsync(id) != null;
+            var response = await _httpClient.DeleteAsync($"Persona/{id}");
+            if (response.IsSuccessStatusCode)
+            {
+                return RedirectToAction(nameof(Index));
+            }
+            else
+            {
+                ModelState.AddModelError(string.Empty, "An error occurred while deleting the persona.");
+                return RedirectToAction(nameof(Delete), new { id = id });
+            }
         }
     }
 }

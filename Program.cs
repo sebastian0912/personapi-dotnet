@@ -1,14 +1,21 @@
-using Microsoft.EntityFrameworkCore;
+ï»¿using Microsoft.EntityFrameworkCore;
 using personapi_dotnet.Models.Entities;
 using Microsoft.OpenApi.Models;
 using personapi_dotnet.Repositories;
-using personapi_dotnet.Models.Interfaces;
+using personapi_dotnet.Controllers.Interfaces;
+using personapi_dotnet.Controllers.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews(); // Use esto para MVC
-builder.Services.AddRazorPages(); // Solo si todavía quieres usar Razor Pages para algo más
+builder.Services.AddRazorPages(); // Solo si todavÃ­a quieres usar Razor Pages para algo mÃ¡s
+
+// HttpClient Configuration
+builder.Services.AddHttpClient("API", client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5203/api/"); // Ajusta la URL segÃºn la configuraciÃ³n de tu ambiente
+});
 
 // Entity Framework Core configuration
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -37,35 +44,39 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseDeveloperExceptionPage(); // Use la página de excepciones para el desarrollo
+    app.UseDeveloperExceptionPage();
 }
 else
 {
-    app.UseExceptionHandler("/Error"); // UseExceptionHandler añade middleware para manejar excepciones
+    app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
 app.UseRouting();
+
 app.UseAuthorization();
 
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+// Configure Swagger only if in Development environment
+if (app.Environment.IsDevelopment())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Person API V1");
-    c.RoutePrefix = string.Empty;
-});
+    app.UseSwagger();
+    // Set the Swagger UI to a specific path
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Person API V1");
+        c.RoutePrefix = "swagger"; // Now Swagger is available at http://localhost:<port>/swagger
+    });
+}
 
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapControllerRoute(
         name: "default",
-        pattern: "{controller=Home}/{action=Index}/{id?}");
-    endpoints.MapRazorPages(); // Solo si todavía quieres usar Razor Pages para algo más
+        pattern: "{controller=Home}/{action=Index}/{id?}"); // This sets Home/Index as the default route
+    endpoints.MapRazorPages();
 });
-
-app.UseBrowserLink();
-
 
 app.Run();

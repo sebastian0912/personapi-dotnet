@@ -1,7 +1,7 @@
 ﻿using personapi_dotnet.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
-using personapi_dotnet.Models.Interfaces;
+using personapi_dotnet.Controllers.Interfaces;
 
 namespace personapi_dotnet.Repositories
 {
@@ -21,46 +21,41 @@ namespace personapi_dotnet.Repositories
 
         public async Task<Estudio> GetByIdAsync(int idProf, int ccPer)
         {
-            return await _context.Estudios
+            var estudio = await _context.Estudios
                 .Include(e => e.IdProfNavigation)
                 .Include(e => e.CcPerNavigation)
                 .FirstOrDefaultAsync(e => e.IdProf == idProf && e.CcPer == ccPer);
-        }
 
+            if (estudio == null)
+            {
+                throw new InvalidOperationException("Estudio no encontrado.");
+            }
+
+            return estudio;
+        }
 
 
         public async Task<Estudio> CreateAsync(Estudio estudio)
         {
-            try
-            {
-                // Solo necesitas asegurarte de que las IDs existen, no necesitas cargar las entidades completas
-                var existsPersona = await _context.Personas.AnyAsync(p => p.Cc == estudio.CcPer);
-                if (!existsPersona)
-                {
-                    throw new Exception("La persona especificada no existe.");
-                }
+            var persona = await _context.Personas.FindAsync(estudio.CcPer);
+            var profesion = await _context.Profesions.FindAsync(estudio.IdProf);
 
-                var existsProfesion = await _context.Profesions.AnyAsync(p => p.Id == estudio.IdProf);
-                if (!existsProfesion)
-                {
-                    throw new Exception("La profesión especificada no existe.");
-                }
+            if (persona == null || profesion == null)
+            {
+                throw new Exception("La Persona o la Profesión especificada no existe.");
+            }
 
-                _context.Estudios.Add(estudio);
-                await _context.SaveChangesAsync();
-                return estudio;
-            }
-            catch (DbUpdateException ex)
-            {
-                Console.WriteLine($"An error occurred when updating the database: {ex.Message}");
-                throw;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"An unexpected error occurred: {ex.Message}");
-                throw;
-            }
+            // Asignar las entidades encontradas a las propiedades de navegación
+            estudio.CcPerNavigation = persona;
+            estudio.IdProfNavigation = profesion;
+
+            _context.Estudios.Add(estudio);
+            await _context.SaveChangesAsync();
+
+            return estudio;
         }
+
+
 
 
 
