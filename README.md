@@ -24,7 +24,6 @@ Para configurar tu entorno de desarrollo en Visual Studio:
 
 Una vez configurado el entorno, puedes clonar el repositorio del proyecto a tu máquina local:
 
-```bash
 git clone https://github.com/sebastian0912/personapi-dotnet.git 
 
 ## Configuración de la Base de Datos
