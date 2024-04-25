@@ -25,4 +25,13 @@ Para configurar tu entorno de desarrollo en Visual Studio:
 Una vez configurado el entorno, puedes clonar el repositorio del proyecto a tu máquina local:
 
 ```bash
-git clone [URL del repositorio]
+git clone https://github.com/sebastian0912/personapi-dotnet.git 
+
+## Configuración de la Base de Datos
+Inicia SQL Server Management Studio y crea una nueva base de datos llamada persona_db.
+Abre el archivo CreacionTablas.sql encontrado dentro de la carpeta scripts del proyecto clonado y ejecuta el script para crear las tablas necesarias en tu base de datos.
+Ejecuta el script InsercionDatos.sql para poblar las tablas con datos iniciales.
+Estos scripts están diseñados para establecer la estructura necesaria y proporcionar un conjunto inicial de datos para que puedas comenzar a trabajar con la API de inmediato.
+
+## Ejecutar el proyecto
+Una vez que hayas configurado tu base de datos y clonado el código fuente, puedes abrir el proyecto en Visual Studio y ejecutarlo. Visual Studio debería manejar la restauración de los paquetes NuGet y la compilación del proyecto automáticamente.
