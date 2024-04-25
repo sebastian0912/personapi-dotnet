@@ -33,6 +33,7 @@ public class EstudiosController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Estudio>> Post([FromBody] Estudio estudio)
     {
+
         await _repository.CreateAsync(estudio);
         return CreatedAtAction(nameof(Get), new { idProf = estudio.IdProf, ccPer = estudio.CcPer }, estudio);
     }

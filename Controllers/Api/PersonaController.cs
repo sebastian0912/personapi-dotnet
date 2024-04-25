@@ -70,7 +70,6 @@ namespace personapi_dotnet.Controllers.Api
             }
             catch
             {
-                // Aquí podrías verificar si la persona realmente existe para retornar NotFound()
                 return NotFound();
             }
         }

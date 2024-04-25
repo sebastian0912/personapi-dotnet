@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using System.Text.Json;
 using personapi_dotnet.Models.Entities;
-using System.Text; // Necesario para enviar datos en formato JSON
-using System.Collections.Generic; // Necesario para usar List
+using System.Text;
+using System.Collections.Generic;
 
 namespace personapi_dotnet.Controllers.View
 {
@@ -19,8 +19,10 @@ namespace personapi_dotnet.Controllers.View
             _options = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
+                ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve,
                 ReadCommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true
+                AllowTrailingCommas = true,
+                PropertyNamingPolicy = null
             };
         }
 
@@ -30,11 +32,10 @@ namespace personapi_dotnet.Controllers.View
             var response = await _httpClient.GetAsync("Persona");
             if (response.IsSuccessStatusCode)
             {
-                var content = await response.Content.ReadAsStringAsync();
-                var personas = JsonSerializer.Deserialize<List<Persona>>(content, _options);
+                var personas = await DeserializeResponse<List<Persona>>(response);
                 return View(personas ?? new List<Persona>());
             }
-            return NotFound();
+            return HandleErrorResponse(response);
         }
 
         // GET: Personas/Create
@@ -53,20 +54,15 @@ namespace personapi_dotnet.Controllers.View
                 return View(persona);
             }
 
-            var json = JsonSerializer.Serialize(persona);
+            var json = JsonSerializer.Serialize(persona, _options);
             var data = new StringContent(json, Encoding.UTF8, "application/json");
 
             var response = await _httpClient.PostAsync("Persona", data);
-
             if (response.IsSuccessStatusCode)
             {
                 return RedirectToAction(nameof(Index));
             }
-            else
-            {
-                ModelState.AddModelError(string.Empty, "An error occurred while creating the persona.");
-                return View(persona);
-            }
+            return HandleErrorResponse(response);
         }
 
         // GET: Personas/Edit/5
@@ -75,11 +71,11 @@ namespace personapi_dotnet.Controllers.View
             var response = await _httpClient.GetAsync($"Persona/{id}");
             if (response.IsSuccessStatusCode)
             {
-                var content = await response.Content.ReadAsStringAsync();
-                var persona = JsonSerializer.Deserialize<Persona>(content, _options);
-                return View(persona);
+                var persona = await DeserializeResponse<Persona>(response);
+                if (persona != null)
+                    return View(persona);
             }
-            return NotFound();
+            return HandleErrorResponse(response);
         }
 
         // POST: Personas/Edit/5
@@ -97,20 +93,15 @@ namespace personapi_dotnet.Controllers.View
                 return View(persona);
             }
 
-            var json = JsonSerializer.Serialize(persona);
+            var json = JsonSerializer.Serialize(persona, _options);
             var data = new StringContent(json, Encoding.UTF8, "application/json");
 
             var response = await _httpClient.PutAsync($"Persona/{id}", data);
-
             if (response.IsSuccessStatusCode)
             {
                 return RedirectToAction(nameof(Index));
             }
-            else
-            {
-                ModelState.AddModelError(string.Empty, "An error occurred while updating the persona.");
-                return View(persona);
-            }
+            return HandleErrorResponse(response);
         }
 
         // GET: Personas/Details/5
@@ -119,11 +110,11 @@ namespace personapi_dotnet.Controllers.View
             var response = await _httpClient.GetAsync($"Persona/{id}");
             if (response.IsSuccessStatusCode)
             {
-                var content = await response.Content.ReadAsStringAsync();
-                var persona = JsonSerializer.Deserialize<Persona>(content, _options);
-                return View(persona);
+                var persona = await DeserializeResponse<Persona>(response);
+                if (persona != null)
+                    return View(persona);
             }
-            return NotFound();
+            return HandleErrorResponse(response);
         }
 
         // GET: Personas/Delete/5
@@ -132,11 +123,11 @@ namespace personapi_dotnet.Controllers.View
             var response = await _httpClient.GetAsync($"Persona/{id}");
             if (response.IsSuccessStatusCode)
             {
-                var content = await response.Content.ReadAsStringAsync();
-                var persona = JsonSerializer.Deserialize<Persona>(content, _options);
-                return View(persona);
+                var persona = await DeserializeResponse<Persona>(response);
+                if (persona != null)
+                    return View(persona);
             }
-            return NotFound();
+            return HandleErrorResponse(response);
         }
 
         // POST: Personas/Delete/5
@@ -149,10 +140,27 @@ namespace personapi_dotnet.Controllers.View
             {
                 return RedirectToAction(nameof(Index));
             }
+            return HandleErrorResponse(response);
+        }
+
+        private async Task<T> DeserializeResponse<T>(HttpResponseMessage response)
+        {
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<T>(content, _options);
+            }
+            return default;
+        }
+
+        private IActionResult HandleErrorResponse(HttpResponseMessage response)
+        {
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return NotFound();
             else
             {
-                ModelState.AddModelError(string.Empty, "An error occurred while deleting the persona.");
-                return RedirectToAction(nameof(Delete), new { id = id });
+                ModelState.AddModelError(string.Empty, "An error occurred while processing your request.");
+                return View("Error"); // Asegúrate de tener una vista de Error adecuada.
             }
         }
     }

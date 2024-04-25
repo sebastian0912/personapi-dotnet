@@ -4,6 +4,9 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
 using personapi_dotnet.Models.Entities;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 
 namespace personapi_dotnet.Models.Entities;
 
@@ -16,9 +19,7 @@ public partial class Estudio
     public DateOnly? Fecha { get; set; }
 
     public string? Univer { get; set; }
-
-    public virtual Persona? CcPerNavigation { get; set; } = null!;
-
-    public virtual Profesion? IdProfNavigation { get; set; } = null!;
+    public virtual Persona CcPerNavigation { get; set; } = null!;
+    public virtual Profesion IdProfNavigation { get; set; } = null!;
 }
 

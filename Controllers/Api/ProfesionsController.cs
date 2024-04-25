@@ -44,8 +44,18 @@ public class ProfesionsController : ControllerBase
         {
             return BadRequest();
         }
-        await _repository.UpdateAsync(profesion);
-        return NoContent();
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+        try
+        {
+            await _repository.UpdateAsync(profesion);
+            return NoContent();
+        } catch (System.Exception)
+        {
+            return NotFound();
+        }
     }
 
     [HttpDelete("{id}")]

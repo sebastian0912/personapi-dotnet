@@ -7,15 +7,22 @@ using personapi_dotnet.Controllers.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllersWithViews(); // Use esto para MVC
+builder.Services.AddControllersWithViews().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+    options.JsonSerializerOptions.PropertyNamingPolicy = null; // Asegúrate de que las propiedades del JSON coincidan con las de tus clases
+});
+
+
 builder.Services.AddRazorPages(); // Solo si todavía quieres usar Razor Pages para algo más
 
 // HttpClient Configuration
 builder.Services.AddHttpClient("API", client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5203/api/"); // Ajusta la URL según la configuración de tu ambiente
+    var baseUrl = builder.Configuration.GetValue<string>("ApiSettings:BaseUrl");
+    client.BaseAddress = new Uri(baseUrl);
 });
+
 
 // Entity Framework Core configuration
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -80,3 +87,4 @@ app.UseEndpoints(endpoints =>
 });
 
 app.Run();
+

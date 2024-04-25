@@ -20,7 +20,9 @@ namespace personapi_dotnet.Controllers.View
             {
                 PropertyNameCaseInsensitive = true,
                 ReadCommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true
+                AllowTrailingCommas = true,
+                ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve, // Adding this to handle potential circular references
+                PropertyNamingPolicy = null // Ensuring exact property name match
             };
         }
 
@@ -28,13 +30,7 @@ namespace personapi_dotnet.Controllers.View
         public async Task<IActionResult> Index()
         {
             var response = await _httpClient.GetAsync("Telefonos");
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                var telefonos = JsonSerializer.Deserialize<List<Telefono>>(content, _options);
-                return View(telefonos ?? new List<Telefono>());
-            }
-            return NotFound();
+            return await HandleResponse<List<Telefono>>(response);
         }
 
         // GET: Telefonos/Create
@@ -49,34 +45,24 @@ namespace personapi_dotnet.Controllers.View
         public async Task<IActionResult> Create(Telefono telefono)
         {
             if (!ModelState.IsValid)
-            {
                 return View(telefono);
-            }
 
-            var json = JsonSerializer.Serialize(telefono);
+            var response = await PostJsonAsync("Telefonos", telefono);
+            return response.IsSuccessStatusCode ? RedirectToAction(nameof(Index)) : HandleError(response, telefono);
+        }
+
+        private async Task<HttpResponseMessage> PutJsonAsync<T>(string uri, T item)
+        {
+            var json = JsonSerializer.Serialize(item, _options);
             var data = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var response = await _httpClient.PostAsync("Telefonos", data);
-
-            if (response.IsSuccessStatusCode)
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            ModelState.AddModelError(string.Empty, "An error occurred while creating the telefono.");
-            return View(telefono);
+            return await _httpClient.PutAsync(uri, data);
         }
 
         // GET: Telefonos/Edit/{num}
         public async Task<IActionResult> Edit(string num)
         {
             var response = await _httpClient.GetAsync($"Telefonos/{num}");
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                var telefono = JsonSerializer.Deserialize<Telefono>(content, _options);
-                return View(telefono);
-            }
-            return NotFound();
+            return await HandleResponse<Telefono>(response);
         }
 
         // POST: Telefonos/Edit/{num}
@@ -85,52 +71,27 @@ namespace personapi_dotnet.Controllers.View
         public async Task<IActionResult> Edit(string num, Telefono telefono)
         {
             if (num != telefono.Num)
-            {
                 return BadRequest();
-            }
 
             if (!ModelState.IsValid)
-            {
                 return View(telefono);
-            }
 
-            var json = JsonSerializer.Serialize(telefono);
-            var data = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var response = await _httpClient.PutAsync($"Telefonos/{num}", data);
-
-            if (response.IsSuccessStatusCode)
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            ModelState.AddModelError(string.Empty, "An error occurred while updating the telefono.");
-            return View(telefono);
+            var response = await PutJsonAsync($"Telefonos/{num}", telefono);
+            return response.IsSuccessStatusCode ? RedirectToAction(nameof(Index)) : HandleError(response, telefono);
         }
 
         // GET: Telefonos/Details/{num}
         public async Task<IActionResult> Details(string num)
         {
             var response = await _httpClient.GetAsync($"Telefonos/{num}");
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                var telefono = JsonSerializer.Deserialize<Telefono>(content, _options);
-                return View(telefono);
-            }
-            return NotFound();
+            return await HandleResponse<Telefono>(response);
         }
 
         // GET: Telefonos/Delete/{num}
         public async Task<IActionResult> Delete(string num)
         {
             var response = await _httpClient.GetAsync($"Telefonos/{num}");
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                var telefono = JsonSerializer.Deserialize<Telefono>(content, _options);
-                return View(telefono);
-            }
-            return NotFound();
+            return await HandleResponse<Telefono>(response);
         }
 
         // POST: Telefonos/Delete/{num}
@@ -139,12 +100,33 @@ namespace personapi_dotnet.Controllers.View
         public async Task<IActionResult> DeleteConfirmed(string num)
         {
             var response = await _httpClient.DeleteAsync($"Telefonos/{num}");
+            return response.IsSuccessStatusCode ? RedirectToAction(nameof(Index)) : HandleError(response);
+        }
+
+        private async Task<IActionResult> HandleResponse<T>(HttpResponseMessage response)
+        {
             if (response.IsSuccessStatusCode)
             {
-                return RedirectToAction(nameof(Index));
+                var content = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<T>(content, _options);
+                return View(result);
             }
-            ModelState.AddModelError(string.Empty, "An error occurred while deleting the telefono.");
-            return View();
+            return HandleError(response);
+        }
+
+        private async Task<HttpResponseMessage> PostJsonAsync<T>(string uri, T item)
+        {
+            var json = JsonSerializer.Serialize(item, _options);
+            var data = new StringContent(json, Encoding.UTF8, "application/json");
+            return await _httpClient.PostAsync(uri, data);
+        }
+
+        private IActionResult HandleError(HttpResponseMessage response, object model = null)
+        {
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return NotFound();
+            ModelState.AddModelError(string.Empty, "An error occurred while processing your request.");
+            return model == null ? View("Error") : View(model);
         }
     }
 }

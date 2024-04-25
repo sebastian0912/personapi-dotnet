@@ -20,18 +20,21 @@ namespace personapi_dotnet.Repositories
         }
 
         public async Task<Estudio> GetByIdAsync(int idProf, int ccPer)
-        {
-            var estudio = await _context.Estudios
-                .Include(e => e.IdProfNavigation)
-                .Include(e => e.CcPerNavigation)
-                .FirstOrDefaultAsync(e => e.IdProf == idProf && e.CcPer == ccPer);
-
-            if (estudio == null)
+        {            
+            Persona persona = await _context.Personas.FindAsync(ccPer);
+            Profesion profesion = await _context.Profesions.FindAsync(idProf);
+            Estudio estudio = await _context.Estudios.FindAsync(idProf, ccPer);
+            return new Estudio
             {
-                throw new InvalidOperationException("Estudio no encontrado.");
-            }
+                IdProf = idProf,
+                CcPer = ccPer,
+                Fecha = estudio.Fecha,
+                Univer = estudio.Univer,
+                CcPerNavigation = persona,
+                IdProfNavigation = profesion,
 
-            return estudio;
+            };
+           //return await _context.Estudios.FindAsync(idProf, ccPer);
         }
 
 
@@ -42,10 +45,9 @@ namespace personapi_dotnet.Repositories
 
             if (persona == null || profesion == null)
             {
-                throw new Exception("La Persona o la Profesión especificada no existe.");
+                throw new ArgumentException("Persona o Profesión no encontrada.");
             }
 
-            // Asignar las entidades encontradas a las propiedades de navegación
             estudio.CcPerNavigation = persona;
             estudio.IdProfNavigation = profesion;
 
@@ -60,20 +62,27 @@ namespace personapi_dotnet.Repositories
 
 
 
+
         public async Task UpdateAsync(Estudio estudio)
         {
             _context.Entry(estudio).State = EntityState.Modified;
             await _context.SaveChangesAsync();
         }
 
+
         public async Task DeleteAsync(int idProf, int ccPer)
         {
             var estudio = await _context.Estudios.FindAsync(idProf, ccPer);
-            if (estudio != null)
+
+            if (estudio == null)
             {
-                _context.Estudios.Remove(estudio);
-                await _context.SaveChangesAsync();
+                throw new InvalidOperationException("Estudio no encontrado.");
             }
+
+            _context.Estudios.Remove(estudio);
+            await _context.SaveChangesAsync();
+
+              
         }
 
         public async Task<bool> EstudioExists(int idProf, int ccPer)

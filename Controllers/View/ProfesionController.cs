@@ -20,7 +20,9 @@ namespace personapi_dotnet.Controllers.View
             {
                 PropertyNameCaseInsensitive = true,
                 ReadCommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true
+                AllowTrailingCommas = true,
+                ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve, // Adding to handle potential circular references
+                PropertyNamingPolicy = null // Ensuring exact property name match
             };
         }
 
@@ -28,13 +30,7 @@ namespace personapi_dotnet.Controllers.View
         public async Task<IActionResult> Index()
         {
             var response = await _httpClient.GetAsync("Profesions");
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                var profesiones = JsonSerializer.Deserialize<List<Profesion>>(content, _options);
-                return View(profesiones ?? new List<Profesion>());
-            }
-            return NotFound();
+            return await HandleResponse<List<Profesion>>(response);
         }
 
         // GET: Profesion/Create
@@ -49,47 +45,24 @@ namespace personapi_dotnet.Controllers.View
         public async Task<IActionResult> Create(Profesion profesion)
         {
             if (!ModelState.IsValid)
-            {
                 return View(profesion);
-            }
 
-            var json = JsonSerializer.Serialize(profesion);
-            var data = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var response = await _httpClient.PostAsync("Profesions", data);
-
-            if (response.IsSuccessStatusCode)
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            ModelState.AddModelError(string.Empty, "An error occurred while creating the profesion.");
-            return View(profesion);
+            var response = await PostJsonAsync("Profesions", profesion);
+            return response.IsSuccessStatusCode ? RedirectToAction(nameof(Index)) : HandleError(response, profesion);
         }
 
         // GET: Profesion/Details/{id}
         public async Task<IActionResult> Details(int id)
         {
             var response = await _httpClient.GetAsync($"Profesions/{id}");
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                var profesion = JsonSerializer.Deserialize<Profesion>(content, _options);
-                return View(profesion);
-            }
-            return NotFound();
+            return await HandleResponse<Profesion>(response);
         }
 
         // GET: Profesion/Edit/{id}
         public async Task<IActionResult> Edit(int id)
         {
             var response = await _httpClient.GetAsync($"Profesions/{id}");
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                var profesion = JsonSerializer.Deserialize<Profesion>(content, _options);
-                return View(profesion);
-            }
-            return NotFound();
+            return await HandleResponse<Profesion>(response);
         }
 
         // POST: Profesion/Edit/{id}
@@ -98,39 +71,28 @@ namespace personapi_dotnet.Controllers.View
         public async Task<IActionResult> Edit(int id, Profesion profesion)
         {
             if (id != profesion.Id)
-            {
                 return BadRequest();
-            }
 
             if (!ModelState.IsValid)
-            {
                 return View(profesion);
-            }
 
-            var json = JsonSerializer.Serialize(profesion);
+            var json = JsonSerializer.Serialize(profesion, _options);
             var data = new StringContent(json, Encoding.UTF8, "application/json");
 
             var response = await _httpClient.PutAsync($"Profesions/{id}", data);
-
             if (response.IsSuccessStatusCode)
             {
-                return RedirectToAction(nameof(Index));
+                 return RedirectToAction(nameof(Index));
             }
-            ModelState.AddModelError(string.Empty, "An error occurred while updating the profesion.");
-            return View(profesion);
+
+            return HandleError(response, profesion);
         }
 
         // GET: Profesion/Delete/{id}
         public async Task<IActionResult> Delete(int id)
         {
             var response = await _httpClient.GetAsync($"Profesions/{id}");
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                var profesion = JsonSerializer.Deserialize<Profesion>(content, _options);
-                return View(profesion);
-            }
-            return NotFound();
+            return await HandleResponse<Profesion>(response);
         }
 
         // POST: Profesion/Delete/{id}
@@ -139,12 +101,33 @@ namespace personapi_dotnet.Controllers.View
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var response = await _httpClient.DeleteAsync($"Profesions/{id}");
+            return response.IsSuccessStatusCode ? RedirectToAction(nameof(Index)) : HandleError(response);
+        }
+
+        private async Task<IActionResult> HandleResponse<T>(HttpResponseMessage response)
+        {
             if (response.IsSuccessStatusCode)
             {
-                return RedirectToAction(nameof(Index));
+                var content = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<T>(content, _options);
+                return View(result);
             }
-            ModelState.AddModelError(string.Empty, "An error occurred while deleting the profesion.");
-            return View();
+            return HandleError(response);
+        }
+
+        private async Task<HttpResponseMessage> PostJsonAsync<T>(string uri, T item)
+        {
+            var json = JsonSerializer.Serialize(item, _options);
+            var data = new StringContent(json, Encoding.UTF8, "application/json");
+            return await _httpClient.PostAsync(uri, data);
+        }
+
+        private IActionResult HandleError(HttpResponseMessage response, object model = null)
+        {
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return NotFound();
+            ModelState.AddModelError(string.Empty, "An error occurred while processing your request.");
+            return model == null ? View("Error") : View(model);
         }
     }
 }

@@ -6,7 +6,6 @@ using personapi_dotnet.Models.Entities;
 using System.Text;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
 
 namespace personapi_dotnet.Controllers.View
 {
@@ -22,7 +21,9 @@ namespace personapi_dotnet.Controllers.View
             {
                 PropertyNameCaseInsensitive = true,
                 ReadCommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true
+                AllowTrailingCommas = true,
+                ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve, // Adding to handle potential circular references
+                PropertyNamingPolicy = null // Ensuring exact property name match
             };
         }
 
@@ -30,21 +31,14 @@ namespace personapi_dotnet.Controllers.View
         public async Task<IActionResult> Index()
         {
             var response = await _httpClient.GetAsync("Estudios");
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                var estudios = JsonSerializer.Deserialize<List<Estudio>>(content, _options);
-                return View(estudios ?? new List<Estudio>());
-            }
-            return NotFound();
+            return await HandleResponse<List<Estudio>>(response);
         }
 
         // GET: Estudios/Create
         public async Task<IActionResult> Create()
         {
-            ViewData["CcPer"] = new SelectList(await FetchPersonas(), "Cc", "Cc");
-            ViewData["IdProf"] = new SelectList(await FetchProfesiones(), "Id", "Id");
-            return View();
+            await LoadRelatedData();
+            return View(new Estudio());
         }
 
         // POST: Estudios/Create
@@ -52,98 +46,33 @@ namespace personapi_dotnet.Controllers.View
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Estudio estudio)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                var json = JsonSerializer.Serialize(estudio);
-                var data = new StringContent(json, Encoding.UTF8, "application/json");
-
-                var response = await _httpClient.PostAsync("api/Estudios", data);
-                if (response.IsSuccessStatusCode)
-                {
-                    return RedirectToAction(nameof(Index));
-                }
-                else
-                {
-                    var errorResponse = await response.Content.ReadAsStringAsync();
-                    ModelState.AddModelError(string.Empty, "Error al crear el estudio: " + errorResponse);
-                }
+                await LoadRelatedData();
+                return View(estudio);
             }
 
-            // Recargar los SelectList si hay un fallo
-            ViewData["CcPer"] = new SelectList(await FetchPersonas(), "Id", "Nombre", estudio.CcPer);
-            ViewData["IdProf"] = new SelectList(await FetchProfesiones(), "Id", "Nom", estudio.IdProf);
-
-            return View(estudio);
-        }
-
-        private async Task<IEnumerable<Persona>> FetchPersonas()
-        {
-            var response = await _httpClient.GetAsync("Persona");
+            var response = await PostJsonAsync("Estudios", estudio);
             if (response.IsSuccessStatusCode)
             {
-                var jsonResponse = await response.Content.ReadAsStringAsync();
-                var persona = JsonSerializer.Deserialize<IEnumerable<Persona>>(jsonResponse) ?? new List<Persona>();
-                Console.WriteLine("------------Personas: " + JsonSerializer.Serialize(persona));
-                return persona;
+                return RedirectToAction(nameof(Index));
             }
-            else
-            {
-                // Log the error or throw an exception
-                Console.WriteLine($"Error fetching personas: {response.StatusCode}");
-                return new List<Persona>();
-            }
+            await LoadRelatedData(); // Recargar datos si hay un error
+            return HandleError(response, estudio);
         }
-
-        private async Task<IEnumerable<Profesion>> FetchProfesiones()
-        {
-            var response = await _httpClient.GetAsync("Profesions");
-            if (response.IsSuccessStatusCode)
-            {
-                var jsonResponse = await response.Content.ReadAsStringAsync();
-                var profesion = JsonSerializer.Deserialize<IEnumerable<Profesion>>(jsonResponse) ?? new List<Profesion>();
-                Console.WriteLine("------------Profesiones: " + JsonSerializer.Serialize(profesion));
-                return profesion;
-            }
-            else
-            {
-                // Log the error or throw an exception
-                Console.WriteLine($"Error fetching profesiones: {response.StatusCode}");
-                return new List<Profesion>();
-            }
-        }
-
-
-
-
-
-
-
-
 
         // GET: Estudios/Details/{idProf}/{ccPer}
         public async Task<IActionResult> Details(int idProf, int ccPer)
         {
             var response = await _httpClient.GetAsync($"Estudios/{idProf}/{ccPer}");
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                var estudio = JsonSerializer.Deserialize<Estudio>(content, _options);
-                return View(estudio);
-            }
-            return NotFound();
+            return await HandleResponse<Estudio>(response);
         }
 
         // GET: Estudios/Edit/{idProf}/{ccPer}
         public async Task<IActionResult> Edit(int idProf, int ccPer)
         {
             var response = await _httpClient.GetAsync($"Estudios/{idProf}/{ccPer}");
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                var estudio = JsonSerializer.Deserialize<Estudio>(content, _options);
-                return View(estudio);
-            }
-            return NotFound();
+            return await HandleResponse<Estudio>(response);
         }
 
         // POST: Estudios/Edit/{idProf}/{ccPer}
@@ -151,40 +80,27 @@ namespace personapi_dotnet.Controllers.View
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int idProf, int ccPer, Estudio estudio)
         {
-            if (idProf != estudio.IdProf || ccPer != estudio.CcPer)
-            {
-                return BadRequest();
-            }
+            ModelState.Remove("CcPerNavigation");
+            ModelState.Remove("IdProfNavigation");
 
-            if (!ModelState.IsValid)
+            if (idProf != estudio.IdProf || ccPer != estudio.CcPer || !ModelState.IsValid)
             {
                 return View(estudio);
             }
 
-            var json = JsonSerializer.Serialize(estudio);
-            var data = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var response = await _httpClient.PutAsync($"Estudios/{idProf}/{ccPer}", data);
-
+            var response = await PostJsonAsync($"Estudios/{idProf}/{ccPer}", estudio);
             if (response.IsSuccessStatusCode)
             {
                 return RedirectToAction(nameof(Index));
             }
-            ModelState.AddModelError(string.Empty, "An error occurred while updating the estudio.");
-            return View(estudio);
+            return HandleError(response, estudio);
         }
 
         // GET: Estudios/Delete/{idProf}/{ccPer}
         public async Task<IActionResult> Delete(int idProf, int ccPer)
         {
             var response = await _httpClient.GetAsync($"Estudios/{idProf}/{ccPer}");
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                var estudio = JsonSerializer.Deserialize<Estudio>(content, _options);
-                return View(estudio);
-            }
-            return NotFound();
+            return await HandleResponse<Estudio>(response);
         }
 
         // POST: Estudios/Delete/{idProf}/{ccPer}
@@ -197,8 +113,132 @@ namespace personapi_dotnet.Controllers.View
             {
                 return RedirectToAction(nameof(Index));
             }
-            ModelState.AddModelError(string.Empty, "An error occurred while deleting the estudio.");
-            return View();
+            return HandleError(response);
         }
+
+        private async Task<IActionResult> HandleResponse<T>(HttpResponseMessage response)
+        {
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<T>(content, _options);
+                return View(result);
+            }
+            return HandleError(response);
+        }
+
+        private async Task<HttpResponseMessage> PostJsonAsync<T>(string uri, T item)
+        {
+            var json = JsonSerializer.Serialize(item, _options);
+            var data = new StringContent(json, Encoding.UTF8, "application/json");
+            return await _httpClient.PostAsync(uri, data);
+        }
+
+        private IActionResult HandleError(HttpResponseMessage response, object model = null)
+        {
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return NotFound();
+            ModelState.AddModelError(string.Empty, "An error occurred while processing your request.");
+            return model == null ? View("Error") : View(model);
+        }
+
+        private async Task LoadRelatedData()
+        {
+            ViewData["CcPer"] = new SelectList(await FetchPersonas(), "Cc", "Nombre");
+            ViewData["IdProf"] = new SelectList(await FetchProfesiones(), "Id", "Nom");
+        }
+
+
+        private async Task<IEnumerable<Persona>> FetchPersonas()
+        {
+            var response = await _httpClient.GetAsync("Persona");
+            if (response.IsSuccessStatusCode)
+            {
+                try
+                {
+                    var jsonResponse = await response.Content.ReadAsStringAsync();
+                    var personas = JsonSerializer.Deserialize<IEnumerable<Persona>>(jsonResponse, _options);
+                    return personas ?? new List<Persona>();
+                }
+                catch (JsonException ex)
+                {
+                    // Log the error or handle it accordingly
+                    Console.WriteLine($"JSON Error: {ex.Message}");
+                    return new List<Persona>();
+                }
+            }
+            return new List<Persona>();
+        }
+
+        private async Task<IEnumerable<Profesion>> FetchProfesiones()
+        {
+            var response = await _httpClient.GetAsync("Profesions");
+            if (response.IsSuccessStatusCode)
+            {
+                try
+                {
+                    var jsonResponse = await response.Content.ReadAsStringAsync();
+                    var profesiones = JsonSerializer.Deserialize<IEnumerable<Profesion>>(jsonResponse, _options);
+                    System.Console.WriteLine("--------------"+profesiones);
+                    return profesiones ?? new List<Profesion>();
+                }
+                catch (JsonException ex)
+                {
+                    // Log the error or handle it accordingly
+                    Console.WriteLine($"JSON Error: {ex.Message}");
+                    return new List<Profesion>();
+                }
+            }
+
+            return new List<Profesion>();
+        }
+
+
+
+        // buscar profesiones por id
+        private async Task<Profesion> FetchProfesion(int id)
+        {
+            var response = await _httpClient.GetAsync($"Profesions/{id}");
+            if (response.IsSuccessStatusCode)
+            {
+                try
+                {
+                    var jsonResponse = await response.Content.ReadAsStringAsync();
+                    var profesion = JsonSerializer.Deserialize<Profesion>(jsonResponse, _options);
+                    return profesion;
+                }
+                catch (JsonException ex)
+                {
+                    Console.WriteLine($"JSON Error: {ex.Message}");
+                    return null;
+                }
+            }
+            return null;
+        }
+           
+
+        
+
+        // buscar personas por cc
+        private async Task<Persona> FetchPersona(int cc)
+        {
+            var response = await _httpClient.GetAsync($"Persona/{cc}");
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var persona = JsonSerializer.Deserialize<Persona>(jsonResponse, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                return persona;
+            }
+            return null;
+        }
+
+
+
+
+
     }
 }

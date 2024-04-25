@@ -33,9 +33,22 @@ namespace personapi_dotnet.Repositories
 
         public async Task UpdateAsync(Telefono telefono)
         {
-            _context.Entry(telefono).State = EntityState.Modified;
+            var existingTelefono = await _context.Telefonos
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Num == telefono.Num);
+
+            if (existingTelefono == null)
+            {
+                _context.Telefonos.Add(telefono);
+            }
+            else
+            {
+                _context.Entry(telefono).State = EntityState.Modified;
+            }
+
             await _context.SaveChangesAsync();
         }
+
 
         public async Task DeleteAsync(string num)
         {
